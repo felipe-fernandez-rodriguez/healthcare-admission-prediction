@@ -23,9 +23,10 @@ DATASET_URL: str = "https://huggingface.co/datasets/Nicolybgs/healthcare_data"
 DATASET_CONFIG: str | None = None  # el dataset solo expone la configuración "default"
 DATASET_SPLIT: str = "train"
 
-# El dataset completo (500 000 filas) pesaría ~55 MB por CSV; se usa una muestra
-# aleatoria reproducible para mantener cada archivo muy por debajo del límite de
-# GitHub (100 MB por archivo, aviso a partir de 50 MB).
-MAX_ROWS: int | None = 100_000
+# Los modelos y el resumen usan SIEMPRE el dataset completo. Solo los CSV que se
+# guardan en el repositorio se limitan a esta cantidad de filas (muestra aleatoria
+# reproducible) para no superar el peso permitido por GitHub (aviso a 50 MB,
+# bloqueo a 100 MB por archivo). ``None`` guarda todo.
+CSV_MAX_ROWS: int | None = 100_000
 RANDOM_SEED: int = 42
 TEST_SIZE: float = 0.2

@@ -132,7 +132,6 @@ def _limitations(r2: float) -> list[str]:
         "La regresión lineal asume relaciones lineales y aditivas; no captura interacciones ni no linealidades.",
         "Los coeficientes describen asociaciones, no causalidad.",
         "Las categorías ordinales (severidad) asumen separaciones equidistantes entre niveles.",
-        "Los resultados provienen de una muestra reproducible del dataset, no de todos sus registros.",
     ]
 
 

@@ -189,7 +189,6 @@ def evaluate_classification(
         "limitations": [
             "Las variables predictoras disponibles tienen poder discriminante limitado; "
             "las métricas muestran cuánto, y no deben usarse como herramienta clínica real.",
-            "El modelo aprende de una muestra reproducible del dataset, no de todos sus registros.",
             "class_weight='balanced' mejora el recall de las clases minoritarias a costa de precisión.",
             "Edad y días de estadía pueden ser consecuencia de la gravedad, no solo causa predictiva.",
             "Datos de salud: cualquier uso real exigiría validación clínica, auditoría de sesgos y privacidad.",

@@ -11,8 +11,7 @@ from typing import Any
 import pandas as pd
 
 from src import config
-from src.data.huggingface_loader import HFDatasetLoader
-from src.data.preprocessing import PREPROCESSING_DESCRIPTION, preprocess
+from src.data.dataset_io import build_metadata, download_and_clean, save_csv_capped
 from src.models.train_classification import run_classification
 from src.models.train_regression import run_regression
 from src.utils.reporter import (
@@ -23,43 +22,23 @@ from src.utils.reporter import (
 
 
 def run_ingestion() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
-    """EA1: descarga, guarda raw, preprocesa, guarda processed y resume."""
-    loader = HFDatasetLoader(
-        config.DATASET_ID,
-        config=config.DATASET_CONFIG,
-        split=config.DATASET_SPLIT,
-        max_rows=config.MAX_ROWS,
-        seed=config.RANDOM_SEED,
-    )
-    raw = loader.load()
-    config.DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
-    raw.to_csv(config.RAW_CSV, index=False)
-
-    processed = preprocess(raw)
-    config.DATA_PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    processed.to_csv(config.PROCESSED_CSV, index=False)
+    """EA1: descarga completa, limpieza, CSV limitados y resumen del DataFrame completo."""
+    raw, processed, info = download_and_clean()
+    saved = [
+        save_csv_capped(raw, config.RAW_CSV),
+        save_csv_capped(processed, config.PROCESSED_CSV),
+    ]
     DatasetSummarizer().save(processed, config.DATA_SUMMARY_TXT)
-
-    info = loader.info()
-    metadata = {
-        "dataset_id": config.DATASET_ID,
-        "dataset_url": config.DATASET_URL,
-        "config": info["config"],
-        "split": info["split"],
-        "filas_originales_en_hf": info["filas_originales_en_hf"],
-        "filas_cargadas": info["filas_cargadas"],
-        "muestreo": info["muestreo"],
-        "columnas_iniciales": info["columnas"],
-        "filas_procesadas": len(processed),
-        "columnas_procesadas": list(processed.columns),
-        "preprocesamiento": PREPROCESSING_DESCRIPTION,
-    }
+    metadata = build_metadata(info, raw, processed, saved)
     save_json(metadata, config.INGESTION_METADATA_JSON)
     return raw, processed, metadata
 
 
 def main() -> None:
-    """Ejecuta ingestión, regresión, clasificación y los dos reportes."""
+    """Ejecuta ingestión, regresión, clasificación y los dos reportes.
+
+    Los modelos se entrenan con el DataFrame completo, no con los CSV guardados.
+    """
     _, processed, metadata = run_ingestion()
     print(f"data-summary.txt -> {config.DATA_SUMMARY_TXT}")
 

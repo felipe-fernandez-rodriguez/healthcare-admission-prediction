@@ -13,7 +13,7 @@ Proyecto de Machine Learning que carga automáticamente el dataset `Nicolybgs/he
 - **Identificador:** `Nicolybgs/healthcare_data`
 - **Enlace:** <https://huggingface.co/datasets/Nicolybgs/healthcare_data>
 - **Configuración / split:** verificados por código con `HFDatasetLoader.available_splits()`: configuración `default`, único split `train` (500 000 filas, 15 columnas).
-- **Muestra usada:** para que cada CSV pese ~9 MB (límite de GitHub: aviso a 50 MB, bloqueo a 100 MB) se toma una **muestra aleatoria reproducible de 100 000 filas** (`seed=42`). Se ajusta en `src/config.py` (`MAX_ROWS`; `None` = dataset completo).
+- **Datos completos vs. CSV guardados:** la descarga, la limpieza, el resumen y el entrenamiento de los modelos usan **las 500 000 filas**. Solo los CSV de `data/` (que se suben al repositorio) se limitan a `CSV_MAX_ROWS = 100 000` filas (muestra aleatoria reproducible, `seed=42`, ~9 MB cada uno) para no superar el peso permitido por GitHub (aviso a 50 MB, bloqueo a 100 MB). Se ajusta en `src/config.py`.
 - **Columnas:** `Available Extra Rooms in Hospital`, `Department`, `Ward_Facility_Code`, `doctor_name`, `staff_available`, `patientid`, `Age` (rangos de texto), `gender`, `Type of Admission`, `Severity of Illness`, `health_conditions`, `Visitors with Patient`, `Insurance`, `Admission_Deposit` (objetivo de regresión), `Stay (in days)`.
 - `Severity of Illness` ya es categórica (Minor, Moderate, Extreme), por lo que no se construyó ninguna etiqueta a partir de una variable numérica.
 
@@ -67,13 +67,14 @@ jupyter nbconvert --to notebook --execute --inplace notebooks/02-model-linear-re
 jupyter nbconvert --to notebook --execute --inplace notebooks/03-model-clasification.ipynb
 ```
 
-o ábralos con `jupyter lab`. El 03 necesita los resultados del 01 y el 02.
+o ábralos con `jupyter lab`. El 03 necesita `reports/regression-results.json`, generado por el 02.
 
 ## EA1 · Carga y creación del dataset
 
 - `HFDatasetLoader` (`src/data/huggingface_loader.py`): recibe `dataset_id`, configuración y `split`, usa `datasets.load_dataset()` y devuelve un `DataFrame`; valida identificador, configuración y split con mensajes de error claros. No transforma ni genera reportes.
 - `DatasetSummarizer` (`src/utils/reporter.py`): recibe un DataFrame y escribe `reports/data-summary.txt` (filas, columnas, tipos, nulos, duplicados y estadísticas descriptivas).
-- `notebooks/01-data-ingestion.ipynb`: carga, guarda `data/raw`, aplica y explica las transformaciones, guarda `data/processed` y genera el resumen **del DataFrame transformado**.
+- `notebooks/01-data-ingestion.ipynb`: descarga el dataset completo, aplica y explica las transformaciones, genera el resumen **del DataFrame transformado completo** y guarda `data/raw` y `data/processed` limitados a `CSV_MAX_ROWS` filas.
+- Notebooks 02 y 03: no leen ni guardan CSV; cada uno descarga y limpia el dataset completo en memoria (`src/data/dataset_io.py`), entrena y deja sus resultados en `reports/`.
 
 ### Transformaciones y decisiones de preprocesamiento
 
@@ -107,7 +108,7 @@ o ábralos con `jupyter lab`. El 03 necesita los resultados del 01 y el 02.
 | `reports/data-summary.txt` | Resumen del DataFrame transformado |
 | `reports/model-summary.txt` | Dataset, preprocesamiento, ambos modelos, métricas, interpretación y limitaciones |
 | `reports/*.json` | Resultados estructurados y metadata de ingestión |
-| `models/*.pkl` | Pipelines entrenados (comprimidos, ~2 MB en total) |
+| `models/*.pkl` | Pipelines entrenados (comprimidos, ~6 MB en total) |
 
 ## GitHub Actions
 
@@ -125,17 +126,6 @@ El workflow `.github/workflows/ml-pipeline.yml` se dispara automáticamente en c
 ## Limitaciones y consideraciones éticas
 
 - Son datos de salud: aunque el dataset es público y no contiene nombres, no deben usarse para decisiones clínicas reales. Cualquier uso real requeriría validación clínica, revisión de sesgos (edad, género, seguro) y cumplimiento de privacidad.
-- Los modelos describen asociaciones, no causalidad; las métricas se calculan sobre una muestra reproducible del dataset.
+- Los modelos describen asociaciones, no causalidad; las métricas se calculan sobre el dataset completo (partición de prueba del 20 %).
 - El poder predictivo de las variables disponibles es bajo (ver `model-summary.txt`).
 - No suba tokens al repositorio: use `.env` (ignorado) o secretos de GitHub.
-
-## Convención de commits sugerida
-
-```
-feat: carga dataset healthcare desde Hugging Face
-feat: agrega resumen automático del dataframe
-feat: implementa regresión lineal
-feat: implementa clasificador de severidad
-ci: automatiza pipeline de machine learning
-docs: actualiza README y evidencias
-```
