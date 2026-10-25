@@ -1,0 +1,137 @@
+{
+  "name": "Clasificación de severidad",
+  "question": "¿Se puede anticipar el nivel de gravedad de un paciente a partir de su edad, condiciones preexistentes, tipo de ingreso, días de estadía y visitantes?",
+  "target": "severity_of_illness",
+  "classes": [
+    "Minor",
+    "Moderate",
+    "Extreme"
+  ],
+  "predictors": [
+    "age_midpoint",
+    "stay_in_days",
+    "visitors_with_patient",
+    "health_conditions",
+    "type_of_admission"
+  ],
+  "algorithm": "RandomForestClassifier dentro de un Pipeline (imputación + OneHotEncoder)",
+  "parameters": {
+    "n_estimators": 100,
+    "max_depth": 12,
+    "min_samples_leaf": 50,
+    "class_weight": "balanced",
+    "n_jobs": -1,
+    "random_state": 42
+  },
+  "split": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "stratified": true,
+    "n_train": 400000,
+    "n_test": 100000
+  },
+  "class_distribution_test": {
+    "Minor": 26307,
+    "Moderate": 56040,
+    "Extreme": 17653
+  },
+  "metrics": {
+    "accuracy": 0.4856,
+    "precision_weighted": 0.5381635067416211,
+    "recall_weighted": 0.4856,
+    "f1_weighted": 0.49604593245448325,
+    "accuracy_baseline_mayoritaria": 0.5604
+  },
+  "metrics_justification": "Las clases están desbalanceadas, por eso además de la exactitud se reportan precisión, recall y F1 ponderados por soporte y el desglose por clase.",
+  "per_class": {
+    "Minor": {
+      "precision": 0.37344019478543167,
+      "recall": 0.4197742045843312,
+      "f1-score": 0.3952539460968539,
+      "support": 26307.0
+    },
+    "Moderate": {
+      "precision": 0.6754485292267431,
+      "recall": 0.4789971448965025,
+      "f1-score": 0.5605078251427736,
+      "support": 56040.0
+    },
+    "Extreme": {
+      "precision": 0.3478232533889468,
+      "recall": 0.6046564323344474,
+      "f1-score": 0.4416127097081153,
+      "support": 17653.0
+    }
+  },
+  "confusion_matrix": {
+    "labels": [
+      "Minor",
+      "Moderate",
+      "Extreme"
+    ],
+    "matrix": [
+      [
+        11043,
+        8792,
+        6472
+      ],
+      [
+        15655,
+        26843,
+        13542
+      ],
+      [
+        2873,
+        4106,
+        10674
+      ]
+    ]
+  },
+  "top_feature_importances": [
+    {
+      "feature": "cat__health_conditions_Asthama",
+      "importance": 0.17620675567764044
+    },
+    {
+      "feature": "cat__health_conditions_Diabetes",
+      "importance": 0.15821664350784198
+    },
+    {
+      "feature": "num__visitors_with_patient",
+      "importance": 0.14886570499664722
+    },
+    {
+      "feature": "num__stay_in_days",
+      "importance": 0.10027302690277198
+    },
+    {
+      "feature": "cat__health_conditions_High Blood Pressure",
+      "importance": 0.09339230186281622
+    },
+    {
+      "feature": "cat__type_of_admission_Trauma",
+      "importance": 0.08942336412655381
+    },
+    {
+      "feature": "num__age_midpoint",
+      "importance": 0.06503290729101313
+    },
+    {
+      "feature": "cat__type_of_admission_Emergency",
+      "importance": 0.06024124233223158
+    }
+  ],
+  "interpretation": [
+    "Exactitud=0.4856 frente a 0.5604 de predecir siempre la clase mayoritaria. La exactitud queda por debajo de esa referencia: class_weight='balanced' sacrifica exactitud global para mejorar el recall de las clases minoritarias.",
+    "Clase mejor reconocida (mayor recall): Extreme (recall=0.605).",
+    "Clase peor reconocida (menor recall): Minor (recall=0.420).",
+    "Error más frecuente: pacientes Moderate clasificados como Minor (15655 casos)."
+  ],
+  "limitations": [
+    "Las variables predictoras disponibles tienen poder discriminante limitado; las métricas muestran cuánto, y no deben usarse como herramienta clínica real.",
+    "class_weight='balanced' mejora el recall de las clases minoritarias a costa de precisión.",
+    "Edad y días de estadía pueden ser consecuencia de la gravedad, no solo causa predictiva.",
+    "Datos de salud: cualquier uso real exigiría validación clínica, auditoría de sesgos y privacidad."
+  ],
+  "model_path": "models\\classifier_severity.pkl"
+}
