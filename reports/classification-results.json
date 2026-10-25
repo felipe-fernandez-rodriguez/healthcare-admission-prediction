@@ -1,0 +1,138 @@
+{
+  "name": "Clasificación de severidad",
+  "question": "¿Se puede anticipar el nivel de gravedad de un paciente a partir de su edad, condiciones preexistentes, tipo de ingreso, días de estadía y visitantes?",
+  "target": "severity_of_illness",
+  "classes": [
+    "Minor",
+    "Moderate",
+    "Extreme"
+  ],
+  "predictors": [
+    "age_midpoint",
+    "stay_in_days",
+    "visitors_with_patient",
+    "health_conditions",
+    "type_of_admission"
+  ],
+  "algorithm": "RandomForestClassifier dentro de un Pipeline (imputación + OneHotEncoder)",
+  "parameters": {
+    "n_estimators": 100,
+    "max_depth": 12,
+    "min_samples_leaf": 50,
+    "class_weight": "balanced",
+    "n_jobs": -1,
+    "random_state": 42
+  },
+  "split": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "stratified": true,
+    "n_train": 80000,
+    "n_test": 20000
+  },
+  "class_distribution_test": {
+    "Minor": 5237,
+    "Moderate": 11213,
+    "Extreme": 3550
+  },
+  "metrics": {
+    "accuracy": 0.46975,
+    "precision_weighted": 0.5268389280733036,
+    "recall_weighted": 0.46975,
+    "f1_weighted": 0.47977844625960114,
+    "accuracy_baseline_mayoritaria": 0.56065
+  },
+  "metrics_justification": "Las clases están desbalanceadas, por eso además de la exactitud se reportan precisión, recall y F1 ponderados por soporte y el desglose por clase.",
+  "per_class": {
+    "Minor": {
+      "precision": 0.36051131456210056,
+      "recall": 0.398510597670422,
+      "f1-score": 0.3785597678215128,
+      "support": 5237.0
+    },
+    "Moderate": {
+      "precision": 0.6647165886635465,
+      "recall": 0.4559885846784982,
+      "f1-score": 0.5409151018249141,
+      "support": 11213.0
+    },
+    "Extreme": {
+      "precision": 0.33670808406197267,
+      "recall": 0.6183098591549295,
+      "f1-score": 0.43599165756281655,
+      "support": 3550.0
+    }
+  },
+  "confusion_matrix": {
+    "labels": [
+      "Minor",
+      "Moderate",
+      "Extreme"
+    ],
+    "matrix": [
+      [
+        2087,
+        1780,
+        1370
+      ],
+      [
+        3146,
+        5113,
+        2954
+      ],
+      [
+        556,
+        799,
+        2195
+      ]
+    ]
+  },
+  "top_feature_importances": [
+    {
+      "feature": "cat__health_conditions_Asthama",
+      "importance": 0.1832240459259862
+    },
+    {
+      "feature": "num__visitors_with_patient",
+      "importance": 0.1519231461993436
+    },
+    {
+      "feature": "cat__health_conditions_Diabetes",
+      "importance": 0.14971224285740822
+    },
+    {
+      "feature": "num__stay_in_days",
+      "importance": 0.11256225347835905
+    },
+    {
+      "feature": "cat__type_of_admission_Trauma",
+      "importance": 0.09273484973033828
+    },
+    {
+      "feature": "cat__health_conditions_High Blood Pressure",
+      "importance": 0.07782613837285922
+    },
+    {
+      "feature": "num__age_midpoint",
+      "importance": 0.0668634693765217
+    },
+    {
+      "feature": "cat__health_conditions_Other",
+      "importance": 0.06539440536267291
+    }
+  ],
+  "interpretation": [
+    "Exactitud=0.4698 frente a 0.5606 de predecir siempre la clase mayoritaria. La exactitud queda por debajo de esa referencia: class_weight='balanced' sacrifica exactitud global para mejorar el recall de las clases minoritarias.",
+    "Clase mejor reconocida (mayor recall): Extreme (recall=0.618).",
+    "Clase peor reconocida (menor recall): Minor (recall=0.399).",
+    "Error más frecuente: pacientes Moderate clasificados como Minor (3146 casos)."
+  ],
+  "limitations": [
+    "Las variables predictoras disponibles tienen poder discriminante limitado; las métricas muestran cuánto, y no deben usarse como herramienta clínica real.",
+    "El modelo aprende de una muestra reproducible del dataset, no de todos sus registros.",
+    "class_weight='balanced' mejora el recall de las clases minoritarias a costa de precisión.",
+    "Edad y días de estadía pueden ser consecuencia de la gravedad, no solo causa predictiva.",
+    "Datos de salud: cualquier uso real exigiría validación clínica, auditoría de sesgos y privacidad."
+  ],
+  "model_path": "models/classifier_severity.pkl"
+}
