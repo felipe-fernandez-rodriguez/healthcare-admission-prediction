@@ -30,12 +30,12 @@
     "metrics": {
       "MAE": 751.8473744090862,
       "RMSE": 1043.5937491776542,
-      "R2": 0.0018671843518865971,
+      "R2": 0.001867184351886375,
       "MAE_baseline_media": 752.772769453789
     },
-    "intercept": 4651.763096900135,
+    "intercept": 4651.76309690015,
     "coefficients": {
-      "stay_in_days": 5.85451155104767
+      "stay_in_days": 5.854511551046451
     },
     "interpretation": [
       "MAE=751.85: error absoluto medio de la predicción del depósito en el conjunto de prueba.",
@@ -51,7 +51,7 @@
       "Los coeficientes describen asociaciones, no causalidad.",
       "Las categorías ordinales (severidad) asumen separaciones equidistantes entre niveles."
     ],
-    "model_path": "models\\regression_simple.pkl"
+    "model_path": "models/regression_simple.pkl"
   },
   "multiple": {
     "name": "Regresión lineal múltiple",
@@ -87,19 +87,19 @@
       "n_test": 100000
     },
     "metrics": {
-      "MAE": 748.8916617472418,
+      "MAE": 748.8916617472414,
       "RMSE": 1039.7412165970586,
       "R2": 0.009222999705315926,
       "MAE_baseline_media": 752.772769453789
     },
-    "intercept": 4886.557478459803,
+    "intercept": 4886.557478459805,
     "coefficients": {
-      "stay_in_days": 7.18542773896106,
-      "visitors_with_patient": -31.271127235283494,
-      "available_extra_rooms_in_hospital": -18.084066773120828,
-      "age_midpoint": -0.8692133383687342,
-      "insurance": 12.933258017156756,
-      "severity_of_illness": -34.266385312902244
+      "stay_in_days": 7.185427738959554,
+      "visitors_with_patient": -31.271127235278872,
+      "available_extra_rooms_in_hospital": -18.08406677312105,
+      "age_midpoint": -0.8692133383687414,
+      "insurance": 12.933258017156946,
+      "severity_of_illness": -34.266385312901555
     },
     "interpretation": [
       "MAE=748.89: error absoluto medio de la predicción del depósito en el conjunto de prueba.",
@@ -120,6 +120,6 @@
       "Los coeficientes describen asociaciones, no causalidad.",
       "Las categorías ordinales (severidad) asumen separaciones equidistantes entre niveles."
     ],
-    "model_path": "models\\regression_multiple.pkl"
+    "model_path": "models/regression_multiple.pkl"
   }
 }

@@ -133,5 +133,5 @@
     "Edad y días de estadía pueden ser consecuencia de la gravedad, no solo causa predictiva.",
     "Datos de salud: cualquier uso real exigiría validación clínica, auditoría de sesgos y privacidad."
   ],
-  "model_path": "models\\classifier_severity.pkl"
+  "model_path": "models/classifier_severity.pkl"
 }
