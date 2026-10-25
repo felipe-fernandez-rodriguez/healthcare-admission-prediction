@@ -152,7 +152,7 @@ def evaluate_classification(
         path = Path(model_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(pipeline, path, compress=3)
-        saved = str(path.relative_to(config.PROJECT_ROOT)) if path.is_relative_to(config.PROJECT_ROOT) else str(path)
+        saved = path.relative_to(config.PROJECT_ROOT).as_posix() if path.is_relative_to(config.PROJECT_ROOT) else str(path)
 
     results: dict[str, Any] = {
         "name": "Clasificación de severidad",
