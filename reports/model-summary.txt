@@ -1,0 +1,123 @@
+RESUMEN AUTOMÁTICO DE MODELOS - EA2
+======================================================================
+Fecha y hora de ejecución: 2026-10-25 17:39:15 UTC+0000
+
+1. DATASET
+----------------------------------------------------------------------
+Identificador: Nicolybgs/healthcare_data
+URL: https://huggingface.co/datasets/Nicolybgs/healthcare_data
+Configuración / split: default / train
+Filas en Hugging Face: 500000
+Muestreo: dataset completo
+Dimensiones iniciales (filas x columnas): 500000 x 15
+Columnas iniciales: Available Extra Rooms in Hospital, Department, Ward_Facility_Code, doctor_name, staff_available, patientid, Age, gender, Type of Admission, Severity of Illness, health_conditions, Visitors with Patient, Insurance, Admission_Deposit, Stay (in days)
+Dimensiones tras el preprocesamiento: 500000 x 14
+Columnas procesadas: available_extra_rooms_in_hospital, department, ward_facility_code, doctor_name, staff_available, gender, type_of_admission, severity_of_illness, health_conditions, visitors_with_patient, insurance, admission_deposit, stay_in_days, age_midpoint
+
+2. PREPROCESAMIENTO
+----------------------------------------------------------------------
+  * Se eliminan espacios sobrantes en columnas de texto.
+  * Se eliminan filas duplicadas exactas.
+  * Los nulos de health_conditions se reemplazan por la categoría 'None' (sin condición preexistente).
+  * Se elimina patientid por ser un identificador sin valor predictivo.
+  * Age (rangos de texto) se convierte a age_midpoint, el punto medio numérico del rango.
+  * Los nombres de columnas se normalizan a snake_case.
+  * En los modelos: separación train/test con semilla fija; imputación y codificación (Ordinal/OneHot) se ajustan únicamente con el conjunto de entrenamiento dentro de un Pipeline.
+
+3. REGRESIÓN LINEAL SIMPLE
+----------------------------------------------------------------------
+Pregunta: ¿Se puede estimar el depósito de admisión usando únicamente los días de estadía?
+Variable objetivo: admission_deposit
+Variables predictoras: stay_in_days
+Algoritmo: LinearRegression (mínimos cuadrados ordinarios) dentro de un Pipeline
+Parámetros: {"LinearRegression": {"copy_X": true, "fit_intercept": true, "n_jobs": null, "positive": false, "tol": 1e-06}, "nota": "Se usan los valores predeterminados de LinearRegression.", "pasos_pipeline": ["imputer", "model"]}
+División train/test: test_size=0.2, random_state=42, n_train=400000, n_test=100000
+Métricas en prueba:
+  MAE=751.8474  RMSE=1043.5937  R2=0.0019  (MAE de la media=752.7728)
+Intercepto: 4651.7631
+Coeficientes:
+  stay_in_days: 5.8545
+Interpretación:
+  - MAE=751.85: error absoluto medio de la predicción del depósito en el conjunto de prueba.
+  - RMSE=1,043.59: error cuadrático medio (penaliza más los errores grandes).
+  - R²=0.0019: proporción de la varianza del depósito explicada por el modelo.
+  - Referencia: predecir siempre la media de entrenamiento da MAE=752.77; el modelo mejora esa referencia solo de forma marginal (<2 %).
+  - Intercepto: con todas las variables predictoras en 0 el depósito estimado sería 4,651.76 (referencia matemática; puede no ser un caso realista).
+  - stay_in_days: cada día adicional de estadía aumenta el depósito estimado en 5.85 unidades.
+
+4. REGRESIÓN LINEAL MÚLTIPLE
+----------------------------------------------------------------------
+Pregunta: ¿Cómo influyen factores clínicos (severidad, edad), logísticos (habitaciones libres) y administrativos (seguro, días de estadía, visitantes) en el depósito de admisión?
+Variable objetivo: admission_deposit
+Variables predictoras: stay_in_days, visitors_with_patient, available_extra_rooms_in_hospital, age_midpoint, insurance, severity_of_illness
+Algoritmo: LinearRegression (mínimos cuadrados ordinarios) dentro de un Pipeline
+Parámetros: {"LinearRegression": {"copy_X": true, "fit_intercept": true, "n_jobs": null, "positive": false, "tol": 1e-06}, "nota": "Se usan los valores predeterminados de LinearRegression.", "pasos_pipeline": ["preprocess", "model"]}
+División train/test: test_size=0.2, random_state=42, n_train=400000, n_test=100000
+Métricas en prueba:
+  MAE=748.8917  RMSE=1039.7412  R2=0.0092  (MAE de la media=752.7728)
+Intercepto: 4886.5575
+Coeficientes:
+  stay_in_days: 7.1854
+  visitors_with_patient: -31.2711
+  available_extra_rooms_in_hospital: -18.0841
+  age_midpoint: -0.8692
+  insurance: 12.9333
+  severity_of_illness: -34.2664
+Interpretación:
+  - MAE=748.89: error absoluto medio de la predicción del depósito en el conjunto de prueba.
+  - RMSE=1,039.74: error cuadrático medio (penaliza más los errores grandes).
+  - R²=0.0092: proporción de la varianza del depósito explicada por el modelo.
+  - Referencia: predecir siempre la media de entrenamiento da MAE=752.77; el modelo mejora esa referencia solo de forma marginal (<2 %).
+  - Intercepto: con todas las variables predictoras en 0 el depósito estimado sería 4,886.56 (referencia matemática; puede no ser un caso realista).
+  - stay_in_days: cada día adicional de estadía aumenta el depósito estimado en 7.19 unidades, manteniendo constantes las demás variables.
+  - visitors_with_patient: cada visitante adicional reduce el depósito estimado en 31.27 unidades, manteniendo constantes las demás variables.
+  - available_extra_rooms_in_hospital: cada habitación libre adicional reduce el depósito estimado en 18.08 unidades, manteniendo constantes las demás variables.
+  - age_midpoint: cada año adicional de edad (punto medio del rango) reduce el depósito estimado en 0.87 unidades, manteniendo constantes las demás variables.
+  - insurance: pasar de insurance=No (1) a Yes (2) aumenta el depósito estimado en 12.93 unidades, manteniendo constantes las demás variables.
+  - severity_of_illness: subir un nivel de severidad (Minor=1, Moderate=2, Extreme=3) reduce el depósito estimado en 34.27 unidades, manteniendo constantes las demás variables.
+
+5. CLASIFICACIÓN DE SEVERIDAD
+----------------------------------------------------------------------
+Pregunta: ¿Se puede anticipar el nivel de gravedad de un paciente a partir de su edad, condiciones preexistentes, tipo de ingreso, días de estadía y visitantes?
+Variable objetivo: severity_of_illness
+Variables predictoras: age_midpoint, stay_in_days, visitors_with_patient, health_conditions, type_of_admission
+Algoritmo: RandomForestClassifier dentro de un Pipeline (imputación + OneHotEncoder)
+Parámetros: {"n_estimators": 100, "max_depth": 12, "min_samples_leaf": 50, "class_weight": "balanced", "n_jobs": -1, "random_state": 42}
+División train/test: test_size=0.2, random_state=42, n_train=400000, n_test=100000, estratificada
+Clases: Minor, Moderate, Extreme
+Justificación de métricas: Las clases están desbalanceadas, por eso además de la exactitud se reportan precisión, recall y F1 ponderados por soporte y el desglose por clase.
+Métricas en prueba:
+  accuracy=0.4856  precision_ponderada=0.5382  recall_ponderado=0.4856  f1_ponderado=0.4960  (exactitud clase mayoritaria=0.5604)
+Matriz de confusión (filas=real, columnas=predicho):
+  real \ pred          Minor     Moderate      Extreme
+  Minor                11043         8792         6472
+  Moderate             15655        26843        13542
+  Extreme               2873         4106        10674
+Reporte por clase:
+  Minor: precision=0.373 recall=0.420 f1=0.395 soporte=26307
+  Moderate: precision=0.675 recall=0.479 f1=0.561 soporte=56040
+  Extreme: precision=0.348 recall=0.605 f1=0.442 soporte=17653
+Variables más importantes:
+  cat__health_conditions_Asthama: 0.1762
+  cat__health_conditions_Diabetes: 0.1582
+  num__visitors_with_patient: 0.1489
+  num__stay_in_days: 0.1003
+  cat__health_conditions_High Blood Pressure: 0.0934
+Interpretación:
+  - Exactitud=0.4856 frente a 0.5604 de predecir siempre la clase mayoritaria. La exactitud queda por debajo de esa referencia: class_weight='balanced' sacrifica exactitud global para mejorar el recall de las clases minoritarias.
+  - Clase mejor reconocida (mayor recall): Extreme (recall=0.605).
+  - Clase peor reconocida (menor recall): Minor (recall=0.420).
+  - Error más frecuente: pacientes Moderate clasificados como Minor (15655 casos).
+
+6. CONCLUSIONES Y LIMITACIONES
+----------------------------------------------------------------------
+  * Regresión múltiple: R²=0.0092 frente a R²=0.0019 de la simple.
+  * Clasificación: exactitud=0.4856, F1 ponderado=0.4960.
+  * El modelo explica aproximadamente 0.9 % de la varianza del depósito en prueba (R²=0.0092).
+  * La regresión lineal asume relaciones lineales y aditivas; no captura interacciones ni no linealidades.
+  * Los coeficientes describen asociaciones, no causalidad.
+  * Las categorías ordinales (severidad) asumen separaciones equidistantes entre niveles.
+  * Las variables predictoras disponibles tienen poder discriminante limitado; las métricas muestran cuánto, y no deben usarse como herramienta clínica real.
+  * class_weight='balanced' mejora el recall de las clases minoritarias a costa de precisión.
+  * Edad y días de estadía pueden ser consecuencia de la gravedad, no solo causa predictiva.
+  * Datos de salud: cualquier uso real exigiría validación clínica, auditoría de sesgos y privacidad.

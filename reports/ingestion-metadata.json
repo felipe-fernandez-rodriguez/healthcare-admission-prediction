@@ -1,0 +1,66 @@
+{
+  "dataset_id": "Nicolybgs/healthcare_data",
+  "dataset_url": "https://huggingface.co/datasets/Nicolybgs/healthcare_data",
+  "config": "default",
+  "split": "train",
+  "filas_originales_en_hf": 500000,
+  "filas_cargadas": 500000,
+  "muestreo": "dataset completo",
+  "columnas_iniciales": [
+    "Available Extra Rooms in Hospital",
+    "Department",
+    "Ward_Facility_Code",
+    "doctor_name",
+    "staff_available",
+    "patientid",
+    "Age",
+    "gender",
+    "Type of Admission",
+    "Severity of Illness",
+    "health_conditions",
+    "Visitors with Patient",
+    "Insurance",
+    "Admission_Deposit",
+    "Stay (in days)"
+  ],
+  "filas_procesadas": 500000,
+  "columnas_procesadas": [
+    "available_extra_rooms_in_hospital",
+    "department",
+    "ward_facility_code",
+    "doctor_name",
+    "staff_available",
+    "gender",
+    "type_of_admission",
+    "severity_of_illness",
+    "health_conditions",
+    "visitors_with_patient",
+    "insurance",
+    "admission_deposit",
+    "stay_in_days",
+    "age_midpoint"
+  ],
+  "preprocesamiento": [
+    "Se eliminan espacios sobrantes en columnas de texto.",
+    "Se eliminan filas duplicadas exactas.",
+    "Los nulos de health_conditions se reemplazan por la categoría 'None' (sin condición preexistente).",
+    "Se elimina patientid por ser un identificador sin valor predictivo.",
+    "Age (rangos de texto) se convierte a age_midpoint, el punto medio numérico del rango.",
+    "Los nombres de columnas se normalizan a snake_case.",
+    "En los modelos: separación train/test con semilla fija; imputación y codificación (Ordinal/OneHot) se ajustan únicamente con el conjunto de entrenamiento dentro de un Pipeline."
+  ],
+  "csv_guardados": [
+    {
+      "archivo": "data/raw/healthcare_raw.csv",
+      "filas_guardadas": 100000,
+      "filas_totales": 500000,
+      "tamano_mb": 8.95
+    },
+    {
+      "archivo": "data/processed/healthcare_processed.csv",
+      "filas_guardadas": 100000,
+      "filas_totales": 500000,
+      "tamano_mb": 8.35
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+{
+  "simple": {
+    "name": "Regresión lineal simple",
+    "question": "¿Se puede estimar el depósito de admisión usando únicamente los días de estadía?",
+    "target": "admission_deposit",
+    "predictors": [
+      "stay_in_days"
+    ],
+    "algorithm": "LinearRegression (mínimos cuadrados ordinarios) dentro de un Pipeline",
+    "parameters": {
+      "LinearRegression": {
+        "copy_X": true,
+        "fit_intercept": true,
+        "n_jobs": null,
+        "positive": false,
+        "tol": 1e-06
+      },
+      "nota": "Se usan los valores predeterminados de LinearRegression.",
+      "pasos_pipeline": [
+        "imputer",
+        "model"
+      ]
+    },
+    "split": {
+      "test_size": 0.2,
+      "random_state": 42,
+      "n_train": 400000,
+      "n_test": 100000
+    },
+    "metrics": {
+      "MAE": 751.8473744090862,
+      "RMSE": 1043.5937491776542,
+      "R2": 0.001867184351886375,
+      "MAE_baseline_media": 752.772769453789
+    },
+    "intercept": 4651.76309690015,
+    "coefficients": {
+      "stay_in_days": 5.854511551046451
+    },
+    "interpretation": [
+      "MAE=751.85: error absoluto medio de la predicción del depósito en el conjunto de prueba.",
+      "RMSE=1,043.59: error cuadrático medio (penaliza más los errores grandes).",
+      "R²=0.0019: proporción de la varianza del depósito explicada por el modelo.",
+      "Referencia: predecir siempre la media de entrenamiento da MAE=752.77; el modelo mejora esa referencia solo de forma marginal (<2 %).",
+      "Intercepto: con todas las variables predictoras en 0 el depósito estimado sería 4,651.76 (referencia matemática; puede no ser un caso realista).",
+      "stay_in_days: cada día adicional de estadía aumenta el depósito estimado en 5.85 unidades."
+    ],
+    "limitations": [
+      "El modelo explica aproximadamente 0.2 % de la varianza del depósito en prueba (R²=0.0019).",
+      "La regresión lineal asume relaciones lineales y aditivas; no captura interacciones ni no linealidades.",
+      "Los coeficientes describen asociaciones, no causalidad.",
+      "Las categorías ordinales (severidad) asumen separaciones equidistantes entre niveles."
+    ],
+    "model_path": "models/regression_simple.pkl"
+  },
+  "multiple": {
+    "name": "Regresión lineal múltiple",
+    "question": "¿Cómo influyen factores clínicos (severidad, edad), logísticos (habitaciones libres) y administrativos (seguro, días de estadía, visitantes) en el depósito de admisión?",
+    "target": "admission_deposit",
+    "predictors": [
+      "stay_in_days",
+      "visitors_with_patient",
+      "available_extra_rooms_in_hospital",
+      "age_midpoint",
+      "insurance",
+      "severity_of_illness"
+    ],
+    "algorithm": "LinearRegression (mínimos cuadrados ordinarios) dentro de un Pipeline",
+    "parameters": {
+      "LinearRegression": {
+        "copy_X": true,
+        "fit_intercept": true,
+        "n_jobs": null,
+        "positive": false,
+        "tol": 1e-06
+      },
+      "nota": "Se usan los valores predeterminados de LinearRegression.",
+      "pasos_pipeline": [
+        "preprocess",
+        "model"
+      ]
+    },
+    "split": {
+      "test_size": 0.2,
+      "random_state": 42,
+      "n_train": 400000,
+      "n_test": 100000
+    },
+    "metrics": {
+      "MAE": 748.8916617472414,
+      "RMSE": 1039.7412165970586,
+      "R2": 0.009222999705315926,
+      "MAE_baseline_media": 752.772769453789
+    },
+    "intercept": 4886.557478459805,
+    "coefficients": {
+      "stay_in_days": 7.185427738959554,
+      "visitors_with_patient": -31.271127235278872,
+      "available_extra_rooms_in_hospital": -18.08406677312105,
+      "age_midpoint": -0.8692133383687414,
+      "insurance": 12.933258017156946,
+      "severity_of_illness": -34.266385312901555
+    },
+    "interpretation": [
+      "MAE=748.89: error absoluto medio de la predicción del depósito en el conjunto de prueba.",
+      "RMSE=1,039.74: error cuadrático medio (penaliza más los errores grandes).",
+      "R²=0.0092: proporción de la varianza del depósito explicada por el modelo.",
+      "Referencia: predecir siempre la media de entrenamiento da MAE=752.77; el modelo mejora esa referencia solo de forma marginal (<2 %).",
+      "Intercepto: con todas las variables predictoras en 0 el depósito estimado sería 4,886.56 (referencia matemática; puede no ser un caso realista).",
+      "stay_in_days: cada día adicional de estadía aumenta el depósito estimado en 7.19 unidades, manteniendo constantes las demás variables.",
+      "visitors_with_patient: cada visitante adicional reduce el depósito estimado en 31.27 unidades, manteniendo constantes las demás variables.",
+      "available_extra_rooms_in_hospital: cada habitación libre adicional reduce el depósito estimado en 18.08 unidades, manteniendo constantes las demás variables.",
+      "age_midpoint: cada año adicional de edad (punto medio del rango) reduce el depósito estimado en 0.87 unidades, manteniendo constantes las demás variables.",
+      "insurance: pasar de insurance=No (1) a Yes (2) aumenta el depósito estimado en 12.93 unidades, manteniendo constantes las demás variables.",
+      "severity_of_illness: subir un nivel de severidad (Minor=1, Moderate=2, Extreme=3) reduce el depósito estimado en 34.27 unidades, manteniendo constantes las demás variables."
+    ],
+    "limitations": [
+      "El modelo explica aproximadamente 0.9 % de la varianza del depósito en prueba (R²=0.0092).",
+      "La regresión lineal asume relaciones lineales y aditivas; no captura interacciones ni no linealidades.",
+      "Los coeficientes describen asociaciones, no causalidad.",
+      "Las categorías ordinales (severidad) asumen separaciones equidistantes entre niveles."
+    ],
+    "model_path": "models/regression_multiple.pkl"
+  }
+}
