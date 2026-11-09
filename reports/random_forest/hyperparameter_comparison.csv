@@ -1,0 +1,8 @@
+config,n_estimators,max_depth,min_samples_leaf,class_weight,accuracy,f1_weighted,recall_extreme,fit_seconds,est_final_model_mb
+RF-1,100,15,100,None,0.5811,0.4763,0.2855,1.1842,10.218
+RF-2,100,15,100,balanced_subsample,0.475,0.4847,0.5905,1.3111,11.8892
+RF-3,200,15,100,balanced_subsample,0.4765,0.4861,0.5894,2.3548,23.633
+RF-4,200,15,200,balanced_subsample,0.474,0.4836,0.588,2.2478,12.5067
+RF-5,200,25,50,balanced_subsample,0.4805,0.4903,0.5776,2.6065,45.8416
+RF-6,100,15,5,None,0.5837,0.5033,0.286,1.4281,60.6228
+RF-7,100,None,1,None,0.5241,0.4973,0.286,2.106,292.8797

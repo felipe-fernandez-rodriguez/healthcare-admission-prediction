@@ -1,0 +1,124 @@
+RESUMEN AUTOMÁTICO - RANDOM FOREST
+========================================================================
+Fecha y hora de ejecución: 2026-11-09 02:06:56 UTC+0000
+Institución / caso: Hospital San Juan de Dios de Rionegro (caso hipotético)
+
+1. PREGUNTA DE NEGOCIO
+------------------------------------------------------------------------
+Al momento de la admisión de un paciente, ¿con qué desempeño puede un modelo predecir su nivel de gravedad (Severity of Illness: Minor, Moderate, Extreme) a partir de información demográfica, antecedentes de salud, tipo de ingreso y variables logísticas disponibles, para apoyar el triaje preliminar y la planificación anticipada de camas y personal?
+
+2. DATASET
+------------------------------------------------------------------------
+Identificador: Nicolybgs/healthcare_data
+URL: https://huggingface.co/datasets/Nicolybgs/healthcare_data
+Configuración / split: default / train
+Tamaño del DataFrame original: 500000 x 15
+Tamaño tras el preprocesamiento: 500000 x 14
+Columnas utilizadas como predictoras: age_midpoint, visitors_with_patient, staff_available, available_extra_rooms_in_hospital, gender, health_conditions, type_of_admission, insurance
+Variable objetivo: severity_of_illness (clases: Minor, Moderate, Extreme)
+Distribución de clases: Minor=26.3%, Moderate=56.0%, Extreme=17.7%
+
+3. PREPROCESAMIENTO
+------------------------------------------------------------------------
+  * Se eliminan espacios sobrantes en columnas de texto.
+  * Se eliminan filas duplicadas exactas.
+  * Los nulos de health_conditions se reemplazan por la categoría 'None' (sin condición preexistente).
+  * Se elimina patientid por ser un identificador sin valor predictivo.
+  * Age (rangos de texto) se convierte a age_midpoint, el punto medio numérico del rango.
+  * Los nombres de columnas se normalizan a snake_case.
+  * En los modelos: separación train/test con semilla fija; imputación y codificación (Ordinal/OneHot) se ajustan únicamente con el conjunto de entrenamiento dentro de un Pipeline.
+Evidencia antes / después:
+  - filas: 500000 -> 500000
+  - columnas: 15 -> 14
+  - filas duplicadas: 0 -> 0
+  - valores nulos (total): 151888 -> 0
+  - columnas de texto (object): 9 -> 8
+  - columnas numéricas: 6 -> 6
+  - columnas eliminadas: Admission_Deposit, Age, Available Extra Rooms in Hospital, Department, Insurance, Severity of Illness, Stay (in days), Type of Admission, Visitors with Patient, Ward_Facility_Code, patientid
+  - columnas creadas/renombradas: admission_deposit, age_midpoint, available_extra_rooms_in_hospital, department, insurance, severity_of_illness, stay_in_days, type_of_admission, visitors_with_patient, ward_facility_code
+  - nulos en health_conditions: 151888
+  - variables predictoras finales: age_midpoint, visitors_with_patient, staff_available, available_extra_rooms_in_hospital, gender, health_conditions, type_of_admission, insurance
+
+4. VARIABLES EXCLUIDAS (prevención de fuga de información)
+------------------------------------------------------------------------
+  * severity_of_illness: Es la variable objetivo.
+  * stay_in_days: Se conoce después de la atención; usarla sería fuga de información (data leakage).
+  * admission_deposit: Se calcula/cobra durante o después de la admisión y podría reflejar la gravedad; por seguridad metodológica se excluye.
+  * department: Se asigna tras el triaje y puede revelar indirectamente la gravedad.
+  * ward_facility_code: Se asigna después de valorar al paciente; puede revelar la gravedad.
+  * doctor_name: Depende de la asignación posterior al triaje; puede revelar la gravedad.
+  * patientid: Identificador sin valor predictivo (ya eliminado en el preprocesamiento).
+
+5. MODELO
+------------------------------------------------------------------------
+Tipo de aprendizaje: Aprendizaje supervisado de clasificación multiclase
+Algoritmo: RandomForestClassifier dentro de un Pipeline (imputación + OneHotEncoder)
+Random Forest entrena muchos árboles de decisión sobre muestras aleatorias de los datos y de las variables, y la clase final se decide por votación. No se escalan las variables porque los árboles dividen por umbrales y no dependen de la escala.
+Configuraciones evaluadas (submuestra de 100000 filas, validación 25 %):
+config  n_estimators max_depth  min_samples_leaf       class_weight  accuracy  f1_weighted  recall_extreme  fit_seconds  est_final_model_mb
+  RF-1           100        15               100               None    0.5811       0.4763          0.2855       1.1842             10.2180
+  RF-2           100        15               100 balanced_subsample    0.4750       0.4847          0.5905       1.3111             11.8892
+  RF-3           200        15               100 balanced_subsample    0.4765       0.4861          0.5894       2.3548             23.6330
+  RF-4           200        15               200 balanced_subsample    0.4740       0.4836          0.5880       2.2478             12.5067
+  RF-5           200        25                50 balanced_subsample    0.4805       0.4903          0.5776       2.6065             45.8416
+  RF-6           100        15                 5               None    0.5837       0.5033          0.2860       1.4281             60.6228
+  RF-7           100      None                 1               None    0.5241       0.4973          0.2860       2.1060            292.8797
+Criterio de selección: Se eligió RF-2: entre las configuraciones con F1 ponderado a menos de 0.01 del mejor (0.4861) y modelo exportado estimado <= 40 MB, es la de mayor recall de la clase Extreme (0.5905). Tiempo de ajuste en la submuestra: 1.3 s.
+Hiperparámetros seleccionados: {'n_estimators': 100, 'max_depth': 15, 'min_samples_leaf': 100, 'class_weight': 'balanced_subsample', 'config': 'RF-2', 'random_state': 42, 'n_jobs': -1}
+Tiempos: búsqueda=13.2 s, entrenamiento final=10.2 s
+División train/test: 80/20 estratificada, random_state=42
+Filas: modelado=500000, train=400000, test=100000
+Muestreo de entrenamiento: entrenamiento con el 100 % de la partición de entrenamiento.
+Modelo exportado: models/random_forest_severity.pkl (8.45 MB)
+
+6. MÉTRICAS EN PRUEBA
+------------------------------------------------------------------------
+accuracy=0.4811  precision_ponderada=0.5371  recall_ponderado=0.4811  f1_ponderado=0.4913
+Por clase:
+  Minor: precision=0.366 recall=0.440 f1=0.399 soporte=26307
+  Moderate: precision=0.675 recall=0.462 f1=0.548 soporte=56040
+  Extreme: precision=0.355 recall=0.605 f1=0.447 soporte=17653
+Recall de Extreme: 0.6047
+Matriz de confusión (filas=real, columnas=predicho):
+  real \ pred          Minor     Moderate      Extreme
+  Minor                11566         8533         6208
+  Moderate             16992        25872        13176
+  Extreme               3043         3935        10675
+
+7. LÍNEA BASE (siempre la clase mayoritaria)
+------------------------------------------------------------------------
+Clase mayoritaria=Moderate  accuracy=0.5604  f1_ponderado=0.4025  recall_Extreme=0.0000
+Diferencia del modelo vs. línea base: accuracy=-0.0793, f1_ponderado=+0.0888
+
+8. VARIABLES MÁS RELEVANTES
+------------------------------------------------------------------------
+Importancia por permutación (F1 ponderado; 100000 filas de prueba, 3 repeticiones):
+  health_conditions: 0.07412 (+/- 0.00119)
+  type_of_admission: 0.03447 (+/- 0.00131)
+  visitors_with_patient: 0.02745 (+/- 0.00034)
+  available_extra_rooms_in_hospital: 0.01715 (+/- 0.00080)
+  age_midpoint: 0.00492 (+/- 0.00050)
+  gender: 0.00447 (+/- 0.00030)
+  staff_available: 0.00028 (+/- 0.00022)
+  insurance: 0.00027 (+/- 0.00027)
+
+9. INTERPRETACIÓN
+------------------------------------------------------------------------
+  * Clase mejor identificada: Extreme (recall=0.605); peor identificada: Minor (recall=0.440).
+  * De 17653 pacientes Extreme reales en prueba, el modelo acertó 10675 (60.5%) y confundió 3043 como Minor, 3935 como Moderate.
+  * Frente a la línea base: accuracy 0.4811 vs 0.5604 y F1 ponderado 0.4913 vs 0.4025.
+  * Valoración de utilidad operativa: utilidad limitada. Criterio: Apto si el F1 ponderado supera a la línea base en >= 0.15 y el recall de Extreme es >= 0.6; limitado si el aumento de F1 es >= 0.05; en otro caso, sin valor operativo. Es un criterio interno del proyecto, no un estándar clínico.
+  * La variable con mayor importancia por permutación es health_conditions (0.07412); 6 de 8 variables tienen un aporte claramente distinguible del ruido (media > 2 desviaciones).
+
+10. LIMITACIONES
+------------------------------------------------------------------------
+  * Las variables disponibles al ingreso tienen poder discriminante limitado; el desempeño medido no debe extrapolarse a otros hospitales o periodos sin validación local.
+  * El dataset es público y de origen no verificado; podría no representar a la población del hospital.
+  * Se asume que visitors_with_patient, staff_available y available_extra_rooms_in_hospital se conocen en el momento de la admisión; si no, habría que retirarlas.
+  * La búsqueda de hiperparámetros se hizo en una submuestra estratificada de 100,000 filas por tiempo de cómputo; el modelo final usa todo el entrenamiento.
+  * Los modelos con hojas pequeñas (más pesados) se excluyeron de la selección para que el modelo exportado pese menos de lo permitido por GitHub.
+  * No se evaluó equidad por género, edad o seguro; antes de cualquier uso real se requiere auditoría de sesgos.
+  * Las importancias por permutación son asociaciones predictivas, no causas clínicas.
+  * No debe usarse como diagnóstico ni para decidir tratamiento: es solo apoyo administrativo preliminar.
+
+Este modelo es un apoyo administrativo y preliminar. NO es un diagnóstico ni una decisión clínica autónoma: requiere validación clínica, revisión de sesgos y supervisión humana.

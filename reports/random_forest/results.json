@@ -1,0 +1,390 @@
+{
+  "business_question": "Al momento de la admisión de un paciente, ¿con qué desempeño puede un modelo predecir su nivel de gravedad (Severity of Illness: Minor, Moderate, Extreme) a partir de información demográfica, antecedentes de salud, tipo de ingreso y variables logísticas disponibles, para apoyar el triaje preliminar y la planificación anticipada de camas y personal?",
+  "target": "severity_of_illness",
+  "classes": [
+    "Minor",
+    "Moderate",
+    "Extreme"
+  ],
+  "class_distribution": {
+    "Minor": 0.263074,
+    "Moderate": 0.560394,
+    "Extreme": 0.176532
+  },
+  "learning_type": "Aprendizaje supervisado de clasificación multiclase",
+  "algorithm": "RandomForestClassifier dentro de un Pipeline (imputación + OneHotEncoder)",
+  "features": [
+    "age_midpoint",
+    "visitors_with_patient",
+    "staff_available",
+    "available_extra_rooms_in_hospital",
+    "gender",
+    "health_conditions",
+    "type_of_admission",
+    "insurance"
+  ],
+  "excluded_columns": {
+    "severity_of_illness": "Es la variable objetivo.",
+    "stay_in_days": "Se conoce después de la atención; usarla sería fuga de información (data leakage).",
+    "admission_deposit": "Se calcula/cobra durante o después de la admisión y podría reflejar la gravedad; por seguridad metodológica se excluye.",
+    "department": "Se asigna tras el triaje y puede revelar indirectamente la gravedad.",
+    "ward_facility_code": "Se asigna después de valorar al paciente; puede revelar la gravedad.",
+    "doctor_name": "Depende de la asignación posterior al triaje; puede revelar la gravedad.",
+    "patientid": "Identificador sin valor predictivo (ya eliminado en el preprocesamiento)."
+  },
+  "hyperparameters_selected": {
+    "n_estimators": 100,
+    "max_depth": 15,
+    "min_samples_leaf": 100,
+    "class_weight": "balanced_subsample",
+    "config": "RF-2",
+    "random_state": 42,
+    "n_jobs": -1
+  },
+  "selection_rationale": "Se eligió RF-2: entre las configuraciones con F1 ponderado a menos de 0.01 del mejor (0.4861) y modelo exportado estimado <= 40 MB, es la de mayor recall de la clase Extreme (0.5905). Tiempo de ajuste en la submuestra: 1.3 s.",
+  "split": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "stratified": true,
+    "n_rows_modeling": 500000,
+    "n_train_available": 400000,
+    "n_train_used": 400000,
+    "n_test": 100000,
+    "train_sampling": "entrenamiento con el 100 % de la partición de entrenamiento",
+    "search_rows": 100000
+  },
+  "timing_seconds": {
+    "hyperparameter_search": 13.2385,
+    "final_training": 10.245284343999998
+  },
+  "metrics": {
+    "accuracy": 0.48113,
+    "precision_weighted": 0.5371362427650943,
+    "recall_weighted": 0.48113,
+    "f1_weighted": 0.4913195724799867
+  },
+  "per_class": {
+    "Minor": {
+      "precision": 0.36600107591531916,
+      "recall": 0.4396548447181359,
+      "f1": 0.39946121433998755,
+      "support": 26307
+    },
+    "Moderate": {
+      "precision": 0.6748043818466354,
+      "recall": 0.46167023554603853,
+      "f1": 0.5482517482517483,
+      "support": 56040
+    },
+    "Extreme": {
+      "precision": 0.3551349013606574,
+      "recall": 0.604713079929757,
+      "f1": 0.44747652582159625,
+      "support": 17653
+    }
+  },
+  "recall_extreme": 0.604713079929757,
+  "confusion_matrix": {
+    "labels": [
+      "Minor",
+      "Moderate",
+      "Extreme"
+    ],
+    "matrix": [
+      [
+        11566,
+        8533,
+        6208
+      ],
+      [
+        16992,
+        25872,
+        13176
+      ],
+      [
+        3043,
+        3935,
+        10675
+      ]
+    ]
+  },
+  "extreme_confusion": {
+    "total": 17653,
+    "correctos": 10675,
+    "clasificados_como": {
+      "Minor": 3043,
+      "Moderate": 3935
+    }
+  },
+  "baseline": {
+    "strategy": "most_frequent",
+    "majority_class": "Moderate",
+    "accuracy": 0.5604,
+    "f1_weighted": 0.40252263522173803,
+    "recall_extreme": 0.0
+  },
+  "best_recognized_class": {
+    "class": "Extreme",
+    "recall": 0.604713079929757
+  },
+  "worst_recognized_class": {
+    "class": "Minor",
+    "recall": 0.4396548447181359
+  },
+  "utility_assessment": {
+    "level": "utilidad limitada",
+    "f1_lift_vs_baseline": 0.08879693725824866,
+    "recall_extreme": 0.604713079929757,
+    "criteria": "Apto si el F1 ponderado supera a la línea base en >= 0.15 y el recall de Extreme es >= 0.6; limitado si el aumento de F1 es >= 0.05; en otro caso, sin valor operativo. Es un criterio interno del proyecto, no un estándar clínico."
+  },
+  "permutation_importance": {
+    "scoring": "f1_weighted",
+    "n_repeats": 3,
+    "rows_used": 100000,
+    "values": [
+      {
+        "feature": "health_conditions",
+        "importance_mean": 0.074119,
+        "importance_std": 0.001194
+      },
+      {
+        "feature": "type_of_admission",
+        "importance_mean": 0.034467,
+        "importance_std": 0.001315
+      },
+      {
+        "feature": "visitors_with_patient",
+        "importance_mean": 0.027448,
+        "importance_std": 0.000342
+      },
+      {
+        "feature": "available_extra_rooms_in_hospital",
+        "importance_mean": 0.017154,
+        "importance_std": 0.000798
+      },
+      {
+        "feature": "age_midpoint",
+        "importance_mean": 0.004925,
+        "importance_std": 0.000498
+      },
+      {
+        "feature": "gender",
+        "importance_mean": 0.004471,
+        "importance_std": 0.000305
+      },
+      {
+        "feature": "staff_available",
+        "importance_mean": 0.000277,
+        "importance_std": 0.000223
+      },
+      {
+        "feature": "insurance",
+        "importance_mean": 0.000269,
+        "importance_std": 0.000269
+      }
+    ]
+  },
+  "internal_importance_grouped": {
+    "health_conditions": 0.515499,
+    "type_of_admission": 0.163915,
+    "visitors_with_patient": 0.117625,
+    "available_extra_rooms_in_hospital": 0.083069,
+    "age_midpoint": 0.05094,
+    "gender": 0.045313,
+    "staff_available": 0.019723,
+    "insurance": 0.003917
+  },
+  "model_path": "models/random_forest_severity.pkl",
+  "model_size_mb": 8.45,
+  "dataset": {
+    "dataset_id": "Nicolybgs/healthcare_data",
+    "dataset_url": "https://huggingface.co/datasets/Nicolybgs/healthcare_data",
+    "config": "default",
+    "split": "train",
+    "filas_originales_en_hf": 500000,
+    "filas_cargadas": 500000,
+    "muestreo": "dataset completo",
+    "columnas_iniciales": [
+      "Available Extra Rooms in Hospital",
+      "Department",
+      "Ward_Facility_Code",
+      "doctor_name",
+      "staff_available",
+      "patientid",
+      "Age",
+      "gender",
+      "Type of Admission",
+      "Severity of Illness",
+      "health_conditions",
+      "Visitors with Patient",
+      "Insurance",
+      "Admission_Deposit",
+      "Stay (in days)"
+    ],
+    "filas_procesadas": 500000,
+    "columnas_procesadas": [
+      "available_extra_rooms_in_hospital",
+      "department",
+      "ward_facility_code",
+      "doctor_name",
+      "staff_available",
+      "gender",
+      "type_of_admission",
+      "severity_of_illness",
+      "health_conditions",
+      "visitors_with_patient",
+      "insurance",
+      "admission_deposit",
+      "stay_in_days",
+      "age_midpoint"
+    ],
+    "preprocesamiento": [
+      "Se eliminan espacios sobrantes en columnas de texto.",
+      "Se eliminan filas duplicadas exactas.",
+      "Los nulos de health_conditions se reemplazan por la categoría 'None' (sin condición preexistente).",
+      "Se elimina patientid por ser un identificador sin valor predictivo.",
+      "Age (rangos de texto) se convierte a age_midpoint, el punto medio numérico del rango.",
+      "Los nombres de columnas se normalizan a snake_case.",
+      "En los modelos: separación train/test con semilla fija; imputación y codificación (Ordinal/OneHot) se ajustan únicamente con el conjunto de entrenamiento dentro de un Pipeline."
+    ]
+  },
+  "preprocessing_evidence": [
+    {
+      "metrica": "filas",
+      "antes": "500000",
+      "despues": "500000"
+    },
+    {
+      "metrica": "columnas",
+      "antes": "15",
+      "despues": "14"
+    },
+    {
+      "metrica": "filas duplicadas",
+      "antes": "0",
+      "despues": "0"
+    },
+    {
+      "metrica": "valores nulos (total)",
+      "antes": "151888",
+      "despues": "0"
+    },
+    {
+      "metrica": "columnas de texto (object)",
+      "antes": "9",
+      "despues": "8"
+    },
+    {
+      "metrica": "columnas numéricas",
+      "antes": "6",
+      "despues": "6"
+    },
+    {
+      "metrica": "columnas eliminadas",
+      "antes": "",
+      "despues": "Admission_Deposit, Age, Available Extra Rooms in Hospital, Department, Insurance, Severity of Illness, Stay (in days), Type of Admission, Visitors with Patient, Ward_Facility_Code, patientid"
+    },
+    {
+      "metrica": "columnas creadas/renombradas",
+      "antes": "",
+      "despues": "admission_deposit, age_midpoint, available_extra_rooms_in_hospital, department, insurance, severity_of_illness, stay_in_days, type_of_admission, visitors_with_patient, ward_facility_code"
+    },
+    {
+      "metrica": "nulos en health_conditions",
+      "antes": "151888",
+      "despues": ""
+    },
+    {
+      "metrica": "variables predictoras finales",
+      "antes": "",
+      "despues": "age_midpoint, visitors_with_patient, staff_available, available_extra_rooms_in_hospital, gender, health_conditions, type_of_admission, insurance"
+    }
+  ],
+  "hyperparameter_comparison": [
+    {
+      "config": "RF-1",
+      "n_estimators": 100,
+      "max_depth": 15,
+      "min_samples_leaf": 100,
+      "class_weight": "None",
+      "accuracy": 0.5811,
+      "f1_weighted": 0.4763,
+      "recall_extreme": 0.2855,
+      "fit_seconds": 1.1842,
+      "est_final_model_mb": 10.218
+    },
+    {
+      "config": "RF-2",
+      "n_estimators": 100,
+      "max_depth": 15,
+      "min_samples_leaf": 100,
+      "class_weight": "balanced_subsample",
+      "accuracy": 0.475,
+      "f1_weighted": 0.4847,
+      "recall_extreme": 0.5905,
+      "fit_seconds": 1.3111,
+      "est_final_model_mb": 11.8892
+    },
+    {
+      "config": "RF-3",
+      "n_estimators": 200,
+      "max_depth": 15,
+      "min_samples_leaf": 100,
+      "class_weight": "balanced_subsample",
+      "accuracy": 0.4765,
+      "f1_weighted": 0.4861,
+      "recall_extreme": 0.5894,
+      "fit_seconds": 2.3548,
+      "est_final_model_mb": 23.633
+    },
+    {
+      "config": "RF-4",
+      "n_estimators": 200,
+      "max_depth": 15,
+      "min_samples_leaf": 200,
+      "class_weight": "balanced_subsample",
+      "accuracy": 0.474,
+      "f1_weighted": 0.4836,
+      "recall_extreme": 0.588,
+      "fit_seconds": 2.2478,
+      "est_final_model_mb": 12.5067
+    },
+    {
+      "config": "RF-5",
+      "n_estimators": 200,
+      "max_depth": 25,
+      "min_samples_leaf": 50,
+      "class_weight": "balanced_subsample",
+      "accuracy": 0.4805,
+      "f1_weighted": 0.4903,
+      "recall_extreme": 0.5776,
+      "fit_seconds": 2.6065,
+      "est_final_model_mb": 45.8416
+    },
+    {
+      "config": "RF-6",
+      "n_estimators": 100,
+      "max_depth": 15,
+      "min_samples_leaf": 5,
+      "class_weight": "None",
+      "accuracy": 0.5837,
+      "f1_weighted": 0.5033,
+      "recall_extreme": 0.286,
+      "fit_seconds": 1.4281,
+      "est_final_model_mb": 60.6228
+    },
+    {
+      "config": "RF-7",
+      "n_estimators": 100,
+      "max_depth": "None",
+      "min_samples_leaf": 1,
+      "class_weight": "None",
+      "accuracy": 0.5241,
+      "f1_weighted": 0.4973,
+      "recall_extreme": 0.286,
+      "fit_seconds": 2.106,
+      "est_final_model_mb": 292.8797
+    }
+  ],
+  "executed_at": "2026-11-09T02:06:56+00:00"
+}

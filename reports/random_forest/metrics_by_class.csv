@@ -1,0 +1,4 @@
+class,precision,recall,f1,support
+Minor,0.366,0.4397,0.3995,26307.0
+Moderate,0.6748,0.4617,0.5483,56040.0
+Extreme,0.3551,0.6047,0.4475,17653.0
