@@ -180,7 +180,7 @@ El workflow `.github/workflows/ml-pipeline.yml` se dispara automáticamente en c
    - **`modelo-random-forest`**: `models/random_forest_severity.pkl`;
    - **`notebooks-ejecutados`**: los cuatro notebooks con sus salidas.
 
-El workflow **no hace commits automáticos**: los resultados se conservan como artefactos. Para versionar los reportes, ejecute el pipeline localmente (o descargue el artefacto) y haga commit de `reports/`.
+El workflow, además, hace commit de `data/`, `models/`, `reports/` y los notebooks ejecutados con `[skip ci]` (solo en `push`, no en `pull_request`), de modo que los resultados quedan versionados en el repositorio. Antes de su siguiente push, ejecute `git pull --rebase` para traer ese commit.
 
 **Dónde ver los artefactos:** pestaña **Actions** → ejecución finalizada → sección *Artifacts*.
 
