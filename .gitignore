@@ -233,4 +233,4 @@ htmlcov/
 .pytest_cache/
 .DS_Store
 Thumbs.db
-# Los CSV de data/, models/*.pkl y reports/*.txt SÍ se versionan (los genera GitHub Actions).
+# Los CSV de data/, models/*.pkl y reports/*.txt SÍ se versionan (se generan al ejecutar el pipeline).

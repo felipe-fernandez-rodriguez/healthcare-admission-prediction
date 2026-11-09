@@ -30,3 +30,21 @@ DATASET_SPLIT: str = "train"
 CSV_MAX_ROWS: int | None = 100_000
 RANDOM_SEED: int = 42
 TEST_SIZE: float = 0.2
+
+# ---- Random Forest (severidad al momento de la admisión) ----
+RF_DIR: Path = REPORTS_DIR / "random_forest"
+RF_FIGURES_DIR: Path = RF_DIR / "figures"
+RF_SUMMARY_TXT: Path = RF_DIR / "model-summary.txt"
+RF_FINDINGS_MD: Path = RF_DIR / "findings.md"
+RF_RESULTS_JSON: Path = RF_DIR / "results.json"
+RF_HYPERPARAMETERS_CSV: Path = RF_DIR / "hyperparameter_comparison.csv"
+RF_METRICS_BY_CLASS_CSV: Path = RF_DIR / "metrics_by_class.csv"
+RF_CONFUSION_PNG: Path = RF_FIGURES_DIR / "confusion_matrix.png"
+RF_IMPORTANCE_PNG: Path = RF_FIGURES_DIR / "feature_importance.png"
+RF_MODEL_PKL: Path = MODELS_DIR / "random_forest_severity.pkl"
+
+# El modelo final se entrena con TODA la partición de entrenamiento. Solo la búsqueda
+# de hiperparámetros usa una submuestra estratificada (para acotar el tiempo de CI).
+RF_SEARCH_ROWS: int = 100_000
+# Tamaño máximo estimado del modelo exportado (GitHub bloquea archivos de más de 100 MB).
+RF_MAX_MODEL_MB: float = 40.0

@@ -6,16 +6,20 @@ on:
       - main
     paths-ignore:
       - "README.md"
+  pull_request:
+    branches:
+      - main
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: ml-pipeline-main
-  cancel-in-progress: false
+  group: ml-pipeline-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   # Opcional: el dataset es público; el secreto solo evita límites de uso anónimo.
+  # (En pull requests desde forks los secretos no están disponibles; no es necesario.)
   HF_TOKEN: ${{ secrets.HF_TOKEN }}
   # Límite de seguridad por archivo generado (GitHub avisa a 50 MB y bloquea a 100 MB).
   MAX_FILE_MB: "50"
@@ -23,7 +27,7 @@ env:
 jobs:
   ml-pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Descargar repositorio
@@ -44,7 +48,7 @@ jobs:
       - name: Registrar kernel de Jupyter
         run: python -m ipykernel install --user --name python3
 
-      - name: Ejecutar pipeline completo (script)
+      - name: Ejecutar pipeline completo (ingestión, modelos y Random Forest)
         run: python -m src.pipeline
 
       - name: Ejecutar notebook 01 - ingestión
@@ -62,36 +66,57 @@ jobs:
           jupyter nbconvert --to notebook --execute --inplace \
             --ExecutePreprocessor.timeout=1800 notebooks/03-model-clasification.ipynb
 
-      - name: Verificar reportes y tamaño de archivos generados
+      - name: Ejecutar notebook 04 - Random Forest
         run: |
-          test -s reports/data-summary.txt || { echo "Falta reports/data-summary.txt"; exit 1; }
-          test -s reports/model-summary.txt || { echo "Falta reports/model-summary.txt"; exit 1; }
+          jupyter nbconvert --to notebook --execute --inplace \
+            --ExecutePreprocessor.timeout=3000 notebooks/04-model-random-forest.ipynb
+
+      - name: Verificar resultados requeridos y tamaño de archivos
+        run: |
+          missing=0
+          for f in \
+            reports/data-summary.txt \
+            reports/model-summary.txt \
+            reports/random_forest/model-summary.txt \
+            reports/random_forest/findings.md \
+            reports/random_forest/results.json \
+            reports/random_forest/hyperparameter_comparison.csv \
+            reports/random_forest/metrics_by_class.csv \
+            reports/random_forest/figures/confusion_matrix.png \
+            reports/random_forest/figures/feature_importance.png \
+            models/random_forest_severity.pkl; do
+            if [ ! -s "$f" ]; then echo "::error::Falta el resultado requerido: $f"; missing=1; fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+
           big=$(find data models reports notebooks -type f -size +${MAX_FILE_MB}M)
           if [ -n "$big" ]; then
-            echo "Archivos que superan ${MAX_FILE_MB} MB:"; echo "$big"; exit 1
+            echo "::error::Archivos que superan ${MAX_FILE_MB} MB:"; echo "$big"; exit 1
           fi
           du -sh data models reports notebooks
 
-      - name: Publicar reportes como artefacto
+      - name: Publicar reportes y gráficas como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: reportes-ml
           path: |
-            reports/data-summary.txt
-            reports/model-summary.txt
+            reports/**/*.txt
+            reports/**/*.md
+            reports/**/*.json
+            reports/**/*.csv
+            reports/**/*.png
           if-no-files-found: error
 
-      - name: Confirmar archivos generados en el repositorio
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data reports models notebooks
+      - name: Publicar modelo Random Forest como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: modelo-random-forest
+          path: models/random_forest_severity.pkl
+          if-no-files-found: error
 
-          if git diff --cached --quiet; then
-            echo "No se generaron cambios."
-            exit 0
-          fi
-
-          git commit -m "chore: actualizar datos, modelos y reportes [skip ci]"
-          git pull --rebase origin main
-          git push origin HEAD:main
+      - name: Publicar notebooks ejecutados como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: notebooks-ejecutados
+          path: notebooks/*.ipynb
+          if-no-files-found: error

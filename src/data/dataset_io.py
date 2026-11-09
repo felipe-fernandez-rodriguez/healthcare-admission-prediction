@@ -80,3 +80,28 @@ def build_metadata(
         "preprocesamiento": PREPROCESSING_DESCRIPTION,
         "csv_guardados": saved_files or [],
     }
+
+
+def build_preprocessing_evidence(
+    raw: pd.DataFrame, processed: pd.DataFrame, features: list[str] | None = None
+) -> pd.DataFrame:
+    """Tabla de evidencia antes/después del preprocesamiento.
+
+    Una fila por métrica con su valor en el DataFrame original, en el procesado y,
+    si se indican ``features``, en la matriz de predictoras final.
+    """
+    rows: list[dict[str, Any]] = [
+        {"metrica": "filas", "antes": len(raw), "despues": len(processed)},
+        {"metrica": "columnas", "antes": raw.shape[1], "despues": processed.shape[1]},
+        {"metrica": "filas duplicadas", "antes": int(raw.duplicated().sum()), "despues": int(processed.duplicated().sum())},
+        {"metrica": "valores nulos (total)", "antes": int(raw.isna().sum().sum()), "despues": int(processed.isna().sum().sum())},
+        {"metrica": "columnas de texto (object)", "antes": int((raw.dtypes == "object").sum()), "despues": int((processed.dtypes == "object").sum())},
+        {"metrica": "columnas numéricas", "antes": int(raw.select_dtypes("number").shape[1]), "despues": int(processed.select_dtypes("number").shape[1])},
+        {"metrica": "columnas eliminadas", "antes": "", "despues": ", ".join(sorted(set(raw.columns) - set(processed.columns)))},
+        {"metrica": "columnas creadas/renombradas", "antes": "", "despues": ", ".join(sorted(set(processed.columns) - set(raw.columns)))},
+    ]
+    for col in raw.columns[raw.isna().any()]:
+        rows.append({"metrica": f"nulos en {col}", "antes": int(raw[col].isna().sum()), "despues": ""})
+    if features is not None:
+        rows.append({"metrica": "variables predictoras finales", "antes": "", "despues": ", ".join(features)})
+    return pd.DataFrame(rows)

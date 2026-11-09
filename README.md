@@ -29,19 +29,22 @@ healthcare-admission-prediction/
 ├── notebooks/
 │   ├── 01-data-ingestion.ipynb         # EA1
 │   ├── 02-model-linear-regresion.ipynb # EA2 regresión
-│   └── 03-model-clasification.ipynb    # EA2 clasificación + model-summary
+│   ├── 03-model-clasification.ipynb    # EA2 clasificación + model-summary
+│   └── 04-model-random-forest.ipynb    # EA3 Random Forest
 ├── reports/
 │   ├── data-summary.txt                # resumen del DataFrame transformado
 │   ├── model-summary.txt               # resumen de ambos modelos
-│   └── *.json                          # resultados estructurados / metadata
+│   ├── *.json                          # resultados estructurados / metadata
+│   └── random_forest/                  # resumen, findings.md, results.json, CSV y figures/
 ├── src/
 │   ├── config.py                       # rutas relativas y constantes
-│   ├── pipeline.py                     # flujo completo por script
+│   ├── pipeline.py                     # orquestador (--stage all|ingestion|baseline-models|random-forest)
 │   ├── data/huggingface_loader.py      # HFDatasetLoader (solo carga)
 │   ├── data/preprocessing.py           # transformaciones
 │   ├── models/train_regression.py      # regresión simple y múltiple
-│   ├── models/train_classification.py  # clasificador de severidad
-│   └── utils/reporter.py               # DatasetSummarizer y ModelSummaryReporter
+│   ├── models/train_classification.py  # clasificador de severidad (EA2)
+│   ├── models/train_random_forest.py   # Random Forest (EA3)
+│   └── utils/reporter.py               # DatasetSummarizer, ModelSummaryReporter, RandomForestReporter
 ├── .env.example · .gitignore · requirements.txt
 ```
 
@@ -54,7 +57,7 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env               # opcional: agregue su HF_TOKEN
-python -m src.pipeline             # genera datos, modelos y reportes
+python -m src.pipeline             # genera datos, modelos y reportes (todas las etapas)
 ```
 
 **Token de Hugging Face:** el dataset es público, así que el token es opcional. Se lee de la variable de entorno `HF_TOKEN` o del archivo `.env` (no versionado). En GitHub, agréguelo como secreto `HF_TOKEN` del repositorio (Settings → Secrets and variables → Actions).
@@ -101,6 +104,60 @@ o ábralos con `jupyter lab`. El 03 necesita `reports/regression-results.json`, 
 - Los coeficientes de regresión se interpretan en unidades originales (no se escalan las numéricas).
 - Los resultados reales (métricas, coeficientes, matriz de confusión e interpretación) están en `reports/model-summary.txt`; las métricas **no se escriben a mano**, salen de la ejecución. Con estos datos las relaciones son débiles (R² cercano a 0 y exactitud del clasificador por debajo de la clase mayoritaria con `balanced`); el reporte lo indica.
 
+## EA3 · Random Forest: severidad al momento de la admisión
+
+**Caso hipotético:** Hospital San Juan de Dios de Rionegro.
+
+**Pregunta de negocio:** _Al momento de la admisión de un paciente, ¿con qué desempeño puede un modelo predecir su nivel de gravedad (`Severity of Illness`: Minor, Moderate, Extreme) a partir de información demográfica, antecedentes de salud, tipo de ingreso y variables logísticas disponibles, para apoyar el triaje preliminar y la planificación anticipada de camas y personal?_
+
+**Beneficiarios y decisión apoyada:** directiva médica, coordinación de urgencias y gestión operativa. El modelo apoya, de forma **preliminar**, la planificación de camas, la distribución preventiva de personal, la anticipación de aumentos de pacientes graves y la priorización operativa inicial. No toma decisiones clínicas ni reemplaza la valoración médica.
+
+**Pertinencia del dataset:** `Nicolybgs/healthcare_data` trae admisiones hospitalarias con la gravedad ya etiquetada (`Severity of Illness`), variables demográficas, antecedentes (`health_conditions`), tipo de ingreso y variables logísticas, con unas 500 000 filas, suficientes para entrenar y evaluar con una prueba independiente. Es un dataset público de origen no verificado, por eso se usa solo como caso de estudio.
+
+### Variables y prevención de fuga de información
+
+- **Predictoras (disponibles al ingreso):** `age_midpoint`, `gender`, `health_conditions`, `type_of_admission`, `visitors_with_patient`, `staff_available`, `available_extra_rooms_in_hospital`, `insurance`.
+- **Excluidas:** `patientid` (identificador); `severity_of_illness` (objetivo); `stay_in_days` (se conoce después de la atención: fuga de información); `admission_deposit` (se fija durante o después de la admisión y podría reflejar la gravedad); `department`, `ward_facility_code` y `doctor_name` (se asignan tras el triaje y pueden revelar la gravedad de forma indirecta).
+- Supuesto a validar con el hospital: `visitors_with_patient`, `staff_available` y `available_extra_rooms_in_hospital` se conocen en el momento de la admisión.
+
+### Cómo funciona Random Forest (en palabras simples)
+
+1. Se toman muchas muestras aleatorias de los pacientes de entrenamiento (con reemplazo).
+2. Con cada muestra se construye un árbol de decisión; en cada división solo se consideran algunas variables elegidas al azar, para que los árboles sean distintos entre sí.
+3. Cuando llega un paciente nuevo, cada árbol «vota» una severidad y gana la clase más votada.
+4. Combinar muchos árboles reduce el sobreajuste de un árbol aislado.
+
+- **Parámetros principales:** `n_estimators` (cantidad de árboles), `max_depth` (profundidad máxima), `min_samples_leaf` (mínimo de pacientes por hoja) y `class_weight` (mayor peso a clases minoritarias). Se compararon 7 configuraciones sobre una submuestra estratificada de 100 000 filas del entrenamiento. Se eligió con el F1 ponderado y el recall de la clase `Extreme` (omitir un caso grave tiene mayor costo operativo), descartando las que producirían un modelo demasiado pesado para GitHub (hojas pequeñas); el detalle está en `reports/random_forest/hyperparameter_comparison.csv`.
+- **Ventajas:** captura relaciones no lineales e interacciones, maneja variables mixtas sin escalarlas y es robusto al ruido.
+- **Limitaciones:** menos interpretable que un árbol único o una regresión, genera modelos más pesados y su desempeño depende de que las variables contengan señal.
+- **Metodología:** división 80/20 estratificada (`random_state=42`); imputación y One-Hot se ajustan solo con entrenamiento; el modelo final se entrena con **toda** la partición de entrenamiento (400 000 filas) y se evalúa en el 20 % de prueba, independiente; importancia por permutación sobre la prueba completa; comparación con una línea base que siempre predice la clase mayoritaria.
+
+### Cómo ejecutar EA3
+
+```bash
+python -m src.pipeline --stage random-forest   # solo el Random Forest (~1,7 min)
+jupyter nbconvert --to notebook --execute --inplace notebooks/04-model-random-forest.ipynb
+```
+
+### Dónde están los resultados
+
+| Entregable | Ruta |
+|---|---|
+| Resumen técnico automático | `reports/random_forest/model-summary.txt` |
+| **Documento de hallazgos para directivos** | [`reports/random_forest/findings.md`](reports/random_forest/findings.md) |
+| Resultados estructurados | `reports/random_forest/results.json` |
+| Comparación de hiperparámetros | `reports/random_forest/hyperparameter_comparison.csv` |
+| Métricas por clase | `reports/random_forest/metrics_by_class.csv` |
+| Matriz de confusión | `reports/random_forest/figures/confusion_matrix.png` |
+| Importancia de variables | `reports/random_forest/figures/feature_importance.png` |
+| Modelo exportado | `models/random_forest_severity.pkl` |
+
+Las métricas y la valoración de utilidad se calculan en cada ejecución; **no** están escritas a mano. Las métricas reales de la última ejecución están en el resumen y en el documento de hallazgos.
+
+### Consideraciones éticas y de privacidad (EA3)
+
+Son datos de salud: el modelo es solo un apoyo administrativo, sujeto a validación clínica, revisión de sesgos (género, edad, seguro) y supervisión humana. No debe usarse para diagnosticar, decidir tratamientos ni negar atención. Un uso real exigiría datos propios del hospital, anonimización, cumplimiento de la normativa de protección de datos y monitoreo periódico del desempeño.
+
 ## Reportes y evidencias
 
 | Archivo | Contenido |
@@ -108,20 +165,24 @@ o ábralos con `jupyter lab`. El 03 necesita `reports/regression-results.json`, 
 | `reports/data-summary.txt` | Resumen del DataFrame transformado |
 | `reports/model-summary.txt` | Dataset, preprocesamiento, ambos modelos, métricas, interpretación y limitaciones |
 | `reports/*.json` | Resultados estructurados y metadata de ingestión |
-| `models/*.pkl` | Pipelines entrenados (comprimidos, ~6 MB en total) |
+| `models/*.pkl` | Pipelines entrenados (comprimidos; el Random Forest pesa ~8 MB) |
 
 ## GitHub Actions
 
-El workflow `.github/workflows/ml-pipeline.yml` se dispara automáticamente en cada `push` a `main` y:
+El workflow `.github/workflows/ml-pipeline.yml` se dispara automáticamente en cada `push` y `pull_request` hacia `main` y:
 
 1. instala Python 3.12 y `requirements.txt`;
-2. ejecuta `python -m src.pipeline` (descarga el dataset desde Hugging Face);
-3. ejecuta los tres notebooks con `nbconvert`;
-4. falla si falta algún reporte o si algún archivo generado supera 50 MB;
-5. publica `data-summary.txt` y `model-summary.txt` como artefacto **`reportes-ml`**;
-6. hace commit de datos, modelos, reportes y notebooks ejecutados con `[skip ci]` (no se re-dispara).
+2. ejecuta `python -m src.pipeline` (ingestión, modelos EA2 y Random Forest EA3), que descarga el dataset desde Hugging Face;
+3. ejecuta los cuatro notebooks con `nbconvert`;
+4. falla de forma explícita si falta algún resultado requerido o si algún archivo generado supera 50 MB;
+5. publica los artefactos:
+   - **`reportes-ml`**: todos los `.txt`, `.md`, `.json`, `.csv` y `.png` de `reports/` (EA1, EA2 y EA3);
+   - **`modelo-random-forest`**: `models/random_forest_severity.pkl`;
+   - **`notebooks-ejecutados`**: los cuatro notebooks con sus salidas.
 
-**Dónde ver los artefactos:** pestaña **Actions** → ejecución finalizada → sección *Artifacts* → `reportes-ml`.
+El workflow **no hace commits automáticos**: los resultados se conservan como artefactos. Para versionar los reportes, ejecute el pipeline localmente (o descargue el artefacto) y haga commit de `reports/`.
+
+**Dónde ver los artefactos:** pestaña **Actions** → ejecución finalizada → sección *Artifacts*.
 
 ## Limitaciones y consideraciones éticas
 
